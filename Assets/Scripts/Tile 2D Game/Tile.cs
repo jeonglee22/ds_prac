@@ -3,6 +3,10 @@ using System.Drawing;
 
 public enum Sides
 {
+    TopLeft,
+    TopRight,
+    BottomLeft,
+    BottomRight,
     Bottom, // 3
     Right,  // 2
     Left,   // 1
@@ -18,7 +22,7 @@ public class Tile
     };
 
     public int id;
-    public Tile[] adjacents = new Tile[4];
+    public Tile[] adjacents = new Tile[8];
 
     public int autoTileId;
     public int autoFowId;

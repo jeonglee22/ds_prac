@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
+using System.Xml.Linq;
 using UnityEngine;
 
 public enum TileTypes
@@ -65,21 +66,58 @@ public class Map
                 var indexD = (r + 1) * cols + c;
                 var indexL = r * cols + c - 1;
 
+                var indexUL = (r - 1) * cols + c - 1;
+                var indexUR = (r - 1) * cols + c + 1;
+                var indexDR = (r + 1) * cols + c + 1;
+                var indexDL = (r + 1) * cols + c - 1;
+
                 if ((r - 1) >= 0)
                 {
                     tiles[index].adjacents[(int)Sides.Top] = tiles[indexU];
+                    if ((c - 1) >= 0)
+                    {
+                        tiles[index].adjacents[(int)Sides.TopLeft] = tiles[indexUL];
+                    }
+                    if(c + 1 < cols)
+                    {
+                        tiles[index].adjacents[(int)Sides.TopRight] = tiles[indexUR];
+                    }
                 }
                 if (c + 1 < cols)
                 {
                     tiles[index].adjacents[(int)Sides.Right] = tiles[indexR];
+                    if(r - 1 >= 0)
+                    {
+                        tiles[index].adjacents[(int)Sides.TopRight] = tiles[indexUR];
+                    }
+                    if(r + 1 < rows)
+                    {
+                        tiles[index].adjacents[(int)Sides.BottomRight] = tiles[indexDR];
+                    }
                 }
                 if (r + 1 < rows)
                 {
                     tiles[index].adjacents[(int)Sides.Bottom] = tiles[indexD];
+                    if(c - 1 >= 0)
+                    {
+                        tiles[index].adjacents[(int)Sides.BottomLeft] = tiles[indexDL];
+                    }
+                    if(c + 1 < cols)
+                    {
+                        tiles[index].adjacents[(int)Sides.BottomRight] = tiles[indexDR];
+                    }
                 }
                 if (c - 1 >= 0)
                 {
                     tiles[index].adjacents[(int)Sides.Left] = tiles[indexL];
+                    if(r - 1 >= 0)
+                    {
+                        tiles[index].adjacents[(int)Sides.TopLeft] = tiles[indexUL];
+                    }
+                    if(r + 1 < rows)
+                    {
+                        tiles[index].adjacents[(int)Sides.BottomLeft] = tiles[index];
+                    }
                 }
             }
         }
@@ -182,7 +220,7 @@ public class Map
             tile.previous = null;
         }
     }
-    
+
     private int Heuristic(Tile a, Tile b)
     {
         int ax = a.id % cols;
@@ -214,7 +252,7 @@ public class Map
         scores[start.id] = distances[start.id] + Heuristic(start, end);
         pQueue.Enqueue(start, scores[start.id]);
 
-        while(pQueue.Count > 0)
+        while (pQueue.Count > 0)
         {
             var currentNode = pQueue.Dequeue();
             if (visited.Contains(currentNode))
@@ -234,7 +272,7 @@ public class Map
                     continue;
 
                 var newDis = distances[currentNode.id] + adjacent.Weight;
-                if(distances[adjacent.id] > newDis)
+                if (distances[adjacent.id] > newDis)
                 {
                     distances[adjacent.id] = newDis;
                     scores[adjacent.id] = distances[adjacent.id] + Heuristic(adjacent, end);
@@ -244,7 +282,85 @@ public class Map
                 }
             }
         }
-        
+
+        if (!success)
+            return false;
+
+        Tile step = end;
+        while (step != null)
+        {
+            path.Add(step);
+            step = step.previous;
+        }
+        path.Reverse();
+        return true;
+    }
+    
+    private float HeuristicDiagonal(Tile a, Tile b)
+    {
+        int ax = a.id % cols;
+        int ay = a.id / cols;
+        int bx = b.id % cols;
+        int by = b.id / cols;
+        float dx = Mathf.Abs(ax - bx);
+        float dy = Mathf.Abs(ay - by);
+
+        return dx + dy + (Mathf.Sqrt(2) - 2) * Mathf.Min(dx, dy);
+    }
+
+    public bool FindRouteAStarDiagonal(Tile start, Tile end)
+    {
+        path.Clear();
+        ResetTilesPrevious();
+
+        var visited = new HashSet<Tile>();
+        var pQueue = new PriorityQueue<Tile, float>();
+
+        var distances = new float[tiles.Length];
+        var scores = new float[tiles.Length];
+        for (int i = 0; i < distances.Length; i++)
+        {
+            distances[i] = int.MaxValue;
+            scores[i] = int.MaxValue;
+        }
+        bool success = false;
+
+        distances[start.id] = start.Weight;
+        scores[start.id] = distances[start.id] + HeuristicDiagonal(start, end);
+        pQueue.Enqueue(start, scores[start.id]);
+
+        while (pQueue.Count > 0)
+        {
+            var currentNode = pQueue.Dequeue();
+            if (visited.Contains(currentNode))
+                continue;
+
+            if (currentNode == end)
+            {
+                success = true;
+                break;
+            }
+
+            visited.Add(currentNode);
+
+            for (int i = 0; i < currentNode.adjacents.Length;  i++)
+            {
+                var adjacent = currentNode.adjacents[i];
+                if (adjacent == null || (adjacent != null && (!adjacent.CanMove || visited.Contains(adjacent))))
+                    continue;
+
+                var newDis = distances[currentNode.id] + adjacent.Weight;
+                if (distances[adjacent.id] > newDis)
+                {
+                    distances[adjacent.id] = newDis;
+                    scores[adjacent.id] = distances[adjacent.id] * (i <= 3 ? 1.4f : 1f) + HeuristicDiagonal(adjacent, end);
+                    adjacent.previous = currentNode;
+
+                    pQueue.Enqueue(adjacent, scores[adjacent.id]);
+                }
+            }
+        }
+
         if (!success)
             return false;
 
