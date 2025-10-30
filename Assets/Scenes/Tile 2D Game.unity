@@ -340,6 +340,7 @@ MonoBehaviour:
   - {fileID: 21300030, guid: dfa5f63634ba24c06a7c899467e4f9f3, type: 3}
   visiteRadius: 5
   movingInterval: 0.5
+  movingSpeed: 50
 --- !u!4 &1170010942
 Transform:
   m_ObjectHideFlags: 0

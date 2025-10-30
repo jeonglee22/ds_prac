@@ -219,10 +219,12 @@ public class Stage : MonoBehaviour
 
     private float movingTime;
     public float movingInterval = 0.5f;
+    public float movingSpeed = 20f;
     private int pos = 0;
+    private Tile nextTile;
     private List<Tile> currentPath;
 
-    private Vector3 playerBeforePos;
+    private Vector3 playerBeforePos = new Vector3(0,0,-1);
 
     private void Awake()
     {
@@ -243,7 +245,7 @@ public class Stage : MonoBehaviour
             isMove = false;
             pos = 0;
             movingTime = 0f;
-        }
+        }            
 
         if (isMove)
         {
@@ -259,13 +261,14 @@ public class Stage : MonoBehaviour
             }
             else
             {
-                next = currentPath[pos+1];
-            }            
+                next = currentPath[pos + 1];
+            }
 
             var currPos = GetTilePos(curr.id);
             var nextPos = GetTilePos(next.id);
+            nextTile = next;
 
-            if(playerBeforePos.z != -1 && pos == 0)
+            if (playerBeforePos.z != -1 && pos == 0)
             {
                 currPos = playerBeforePos;
             }
@@ -277,13 +280,18 @@ public class Stage : MonoBehaviour
                 pos += 1;
                 movingTime = 0f;
                 OnTileVisited(curr);
+                
                 if (pos == currentPath.Count - 1)
                 {
                     isMove = false;
                     pos = 0;
                     playerBeforePos.z = -1;
                     currentPath = null;
+                    ResetStageColor();
+                    nextTile = null;
                 }
+                else
+                    movingInterval = Vector3.Distance(GetTilePos(currentPath[pos].id), GetTilePos(currentPath[pos+1].id)) / movingSpeed;
             }
         }
 
@@ -298,19 +306,55 @@ public class Stage : MonoBehaviour
                 {
                     playerBeforePos = player.transform.position;
                     pos = 0;
+                    movingInterval = Vector3.Distance(playerBeforePos, GetTilePos(nextTile.id)) / movingSpeed;
                     movingTime = 0f;
                 }
 
-                currentPath = new List<Tile>(map.path);
+                currentPath = new List<Tile>();
+
+                if (nextTile != null)
+                    currentPath.Add(nextTile);
+
+                currentPath.AddRange(map.path);
+
+                ChangeColorForRoute(currentPath);
                 isMove = true;
             }
         }
 
-        if(player != null)
+        if (player != null)
+            FollowCamera();
+    }
+
+    private void FollowCamera()
+    {
+        var pos = player.transform.position;
+        pos.z -= 10;
+        cam.transform.position = pos;
+        var playerPosId = WorldPosToTileId(player.transform.position);
+        var obj = tileObjs[playerPosId];
+        obj.GetComponent<SpriteRenderer>().color = Color.gray;
+    }
+    
+    private void ChangeColorForRoute(List<Tile> tiles)
+    {
+        ResetStageColor();
+
+        if (tiles.Count == 1)
+            tileObjs[tiles[0].id].GetComponent<SpriteRenderer>().color = Color.green;
+
+        for (int i = 0; i < tiles.Count; i++)
         {
-            var pos = player.transform.position;
-            pos.z -= 10;
-            cam.transform.position = pos;
+            var routeObj = tileObjs[tiles[i].id];
+            routeObj.GetComponent<SpriteRenderer>().color = Color.Lerp(Color.red, Color.green, i / (tiles.Count-1.0f));
+        }
+    }
+
+    private void ResetStageColor()
+    {
+        foreach (var obj in tileObjs)
+        {
+            obj.GetComponent<SpriteRenderer>().color = Color.white;
         }
     }
 }
