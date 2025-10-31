@@ -7,7 +7,8 @@ public class HashTableTest : MonoBehaviour
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
-        var hashTable = new SimpleHashTable<string, int>();
+        // var hashTable = new OpenAdressingHashTable<string, int>(ProbingStrategy.DoubleHash);
+        var hashTable = new ChainingHashTable<string, int>();
 
         hashTable.Add("1", 1);
         hashTable.Add("2", 2);
@@ -28,21 +29,29 @@ public class HashTableTest : MonoBehaviour
         {
             Debug.Log(kvp.Key + ", " + kvp.Value);
         }
+        Debug.Log(hashTable.Count);
 
         hashTable.Add("15", 15);
         foreach (var kvp in hashTable)
         {
             Debug.Log(kvp.Key + ", " + kvp.Value);
         }
+        Debug.Log(hashTable.Count);
 
-        for (int i = 20; i < 50; i++)
+        hashTable.Clear();
+        for (int i = 0; i < 50; i++)
         {
             hashTable.Add($"{i}", i);
         }
-        foreach (var kvp in hashTable)
+        Debug.Log(hashTable.Keys.Count);
+        Debug.Log(hashTable.Values.Count);
+        Debug.Log(hashTable.Count);
+        for (int i = 0; i < 20; i++)
         {
-            Debug.Log(kvp.Key + ", " + kvp.Value);
+            hashTable.Remove($"{i}");
         }
+        Debug.Log(hashTable.Keys.Count);
+        Debug.Log(hashTable.Values.Count);
         Debug.Log(hashTable.Count);
     }
 }
