@@ -15,6 +15,8 @@ public class ChainingHashTable<TKey, TValue> : IDictionary<TKey, TValue>
     private bool[] occupied;
 
     private int size;
+    public int Size { get { return size; } }
+    public bool isSizeChanged { get; set; }
     private int count;
 
     public TValue this[TKey key]
@@ -181,6 +183,7 @@ public class ChainingHashTable<TKey, TValue> : IDictionary<TKey, TValue>
                 }
             }
         }
+        isSizeChanged = true;
     }
 
     public void Add(KeyValuePair<TKey, TValue> item)

@@ -29,6 +29,9 @@ public class OpenAdressingHashTable<TKey, TValue> : IDictionary<TKey, TValue>
     private ProbingStrategy probingStrategy;
     public ProbingStrategy ProbingStrategy { get { return probingStrategy; } set { probingStrategy = value; }}
 
+    public int Size { get { return size; } }
+    public bool isSizeChanged { get; set; }
+
     public OpenAdressingHashTable(ProbingStrategy probingStrategy = ProbingStrategy.Linear)
     {
         table = new KeyValuePair<TKey, TValue>[DefaultCapacity];
@@ -196,9 +199,10 @@ public class OpenAdressingHashTable<TKey, TValue> : IDictionary<TKey, TValue>
                 Add(oldTable[i].Key, oldTable[i].Value);
             }
         }
+        isSizeChanged = true;
     }
     
-    private int FindIndex(TKey key)
+    public int FindIndex(TKey key)
     {
         if (key == null)
             throw new ArgumentNullException();

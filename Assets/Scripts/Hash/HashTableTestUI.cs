@@ -1,12 +1,14 @@
+using System;
 using System.Collections.Generic;
 using TMPro;
+using Unity.Collections;
 using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.UI;
 
 public class HashTableTestUI : MonoBehaviour
 {
-    private const int DefaultCapacity = 16;
+    private int currentSize = 16;
 
     enum Method
     {
@@ -44,6 +46,7 @@ public class HashTableTestUI : MonoBehaviour
     private RectTransform content;
 
     private List<GameObject> visualObjs;
+    private bool[] usedChainingTable;
 
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
@@ -69,7 +72,52 @@ public class HashTableTestUI : MonoBehaviour
 
         ResetVisualObjs();
     }
-    
+
+    private void Update()
+    {
+        
+        
+    }
+
+    private void SizeUpChainging(int inputIndex)
+    {
+        this.currentSize = chainingHashTable.Size;
+        ResetVisualObjs();
+
+        chainingHashTable.isSizeChanged = false;
+
+        foreach (var key in chainingHashTable.Keys)
+        {
+            int index = chainingHashTable.GetIndex(key);
+            if (inputIndex == index)
+                continue;
+
+            if (!usedChainingTable[index])
+                Destroy(visualObjs[index].transform.GetChild(0).gameObject);
+            var obj = Instantiate(occupiedSlot, visualObjs[index].transform);
+            SetSlotText(obj, index, key, chainingHashTable[key]);
+
+            usedChainingTable[index] = true;
+        }
+    }
+    private void SizeUpOpen(int inputIndex)
+    {
+        this.currentSize = openHashTable.Size;
+        ResetVisualObjs();
+        
+        foreach (var key in openHashTable.Keys)
+        {
+            int index = openHashTable.FindIndex(key);
+            if (inputIndex == index)
+                continue;
+
+            Destroy(visualObjs[index].transform.GetChild(0).gameObject);
+            var obj = Instantiate(occupiedSlot, visualObjs[index].transform);
+            SetSlotText(obj, index, key, openHashTable[key]);
+        }
+        openHashTable.isSizeChanged = false;
+    }
+
     private void ResetVisualObjs()
     {
         visualObjs.Clear();
@@ -79,13 +127,14 @@ public class HashTableTestUI : MonoBehaviour
             Destroy(child.gameObject);
         }
 
-        for (int i = 0; i < DefaultCapacity; i++)
+        for (int i = 0; i < currentSize; i++)
         {
             var obj = Instantiate(indexBlock, content);
             Instantiate(emptySlot, obj.transform);
             visualObjs.Add(obj);
             SetEmptyText(obj, i);
         }
+        usedChainingTable = new bool[visualObjs.Count];
     }
 
     private void OnMethodValueChanged(int index)
@@ -122,7 +171,11 @@ public class HashTableTestUI : MonoBehaviour
         {
             case Method.OpenAdressing:
                 openHashTable.Add(kvp);
-                CheckAddAndUpdateSlot(kvp, occupiedSlot, false);
+                if (openHashTable.isSizeChanged)
+                {
+                    SizeUpOpen(openHashTable.FindIndex(inputKey));
+                }
+                CheckUpdateSlot(kvp, occupiedSlot, false, openHashTable.FindIndex(inputKey));
                 break;
             case Method.ChainingHash:
                 CheckChainAddAndUpdateSlot(kvp);
@@ -130,9 +183,11 @@ public class HashTableTestUI : MonoBehaviour
         }
     }
 
-    private void CheckAddAndUpdateSlot(KeyValuePair<string, int> kvp, GameObject slot, bool isRemove)
+    private void CheckUpdateSlot(KeyValuePair<string, int> kvp, GameObject slot, bool isRemove, int index)
     {
-        var index = openHashTable.GetProbeIndex(inputKey, inputValue);
+        if (index == -1)
+            return;
+
         Destroy(visualObjs[index].transform.GetChild(0).gameObject);
         var obj = Instantiate(slot, visualObjs[index].transform);
         if (!isRemove)
@@ -145,13 +200,16 @@ public class HashTableTestUI : MonoBehaviour
     {
         var index2 = chainingHashTable.GetIndex(inputKey);
 
-        bool destroyEmpty = false;
-        if (!chainingHashTable.ContainsKey(inputKey))
+        chainingHashTable.Add(kvp);
+
+        if (chainingHashTable.isSizeChanged)
         {
-            destroyEmpty = true;
+            SizeUpChainging(index2);
         }
 
-        chainingHashTable.Add(kvp);
+        bool destroyEmpty = false;
+        if (!usedChainingTable[index2])
+            destroyEmpty = true;
 
         if (chainingHashTable.ContainsKey(inputKey))
         {
@@ -160,6 +218,7 @@ public class HashTableTestUI : MonoBehaviour
 
             var obj = Instantiate(occupiedSlot, visualObjs[index2].transform);
             SetSlotText(obj, index2, inputKey, inputValue);
+            usedChainingTable[index2] = true;
         }
     }
     
@@ -167,20 +226,30 @@ public class HashTableTestUI : MonoBehaviour
     {
         var index2 = chainingHashTable.GetIndex(inputKey);
 
-        if(chainingHashTable.Remove(kvp));
+        if (!chainingHashTable.Remove(kvp))
+            return;
 
-        if (!chainingHashTable.ContainsKey(inputKey))
+        var list = chainingHashTable.GetlistForKey(kvp.Key);
+
+        if (list != null)
         {
-            var list = chainingHashTable.GetlistForKey(kvp.Key);
+            for (int i = 0; i < visualObjs[index2].transform.childCount; i++)
+            {
+                Destroy(visualObjs[index2].transform.GetChild(i).gameObject);
+            }
 
-            
-            Destroy(visualObjs[index2].transform.GetChild(0).gameObject);
-            var obj = Instantiate(emptySlot, visualObjs[index2].transform);
-            SetEmptyText(obj, index2);
+            foreach (var ele in list)
+            {
+                var obj = Instantiate(occupiedSlot, visualObjs[index2].transform);
+                SetSlotText(obj, index2, ele.Key, ele.Value);
+            }
         }
         else
         {
-            
+            Destroy(visualObjs[index2].transform.GetChild(0).gameObject);
+            var obj = Instantiate(emptySlot, visualObjs[index2].transform);
+            SetEmptyText(obj, index2);
+            usedChainingTable[index2] = false;
         }
     }
 
@@ -193,11 +262,12 @@ public class HashTableTestUI : MonoBehaviour
         switch (currentMethod)
         {
             case Method.OpenAdressing:
+                int index = openHashTable.FindIndex(kvp.Key);
                 if(openHashTable.Remove(kvp))
-                    CheckAddAndUpdateSlot(kvp, emptySlot, true);
+                    CheckUpdateSlot(kvp, emptySlot, true, index);
                 break;
             case Method.ChainingHash:
-                chainingHashTable.Remove(kvp);
+                CheckChainRemoveAndUpdateSlot(kvp);
                 break;
         }
     }
@@ -207,7 +277,12 @@ public class HashTableTestUI : MonoBehaviour
         openHashTable.Clear();
         chainingHashTable.Clear();
 
+        openHashTable = new OpenAdressingHashTable<string, int>();
+        chainingHashTable = new ChainingHashTable<string, int>();
+
+        currentSize = 16;
         ResetVisualObjs();
+        isCleared = true;
     }
 
     private void SetHistoryText()
