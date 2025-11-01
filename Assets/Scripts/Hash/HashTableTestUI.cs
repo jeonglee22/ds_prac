@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Text;
 using TMPro;
 using Unity.Collections;
 using Unity.VisualScripting;
@@ -71,6 +72,7 @@ public class HashTableTestUI : MonoBehaviour
         isCleared = true;
 
         ResetVisualObjs();
+        hashHistory.text = string.Empty;
     }
 
     private void Update()
@@ -175,6 +177,11 @@ public class HashTableTestUI : MonoBehaviour
                 {
                     SizeUpOpen(openHashTable.FindIndex(inputKey));
                 }
+
+                if (openHashTable.FindIndex(inputKey) == -1)
+                    return;
+
+                AddHistoryText($"ADD {inputKey}");
                 CheckUpdateSlot(kvp, occupiedSlot, false, openHashTable.FindIndex(inputKey));
                 break;
             case Method.ChainingHash:
@@ -213,6 +220,7 @@ public class HashTableTestUI : MonoBehaviour
 
         if (chainingHashTable.ContainsKey(inputKey))
         {
+            AddHistoryText($"ADD {inputKey}");
             if (destroyEmpty)
                 Destroy(visualObjs[index2].transform.GetChild(0).gameObject);
 
@@ -229,6 +237,7 @@ public class HashTableTestUI : MonoBehaviour
         if (!chainingHashTable.Remove(kvp))
             return;
 
+        AddHistoryText($"Remove {inputKey}");
         var list = chainingHashTable.GetlistForKey(kvp.Key);
 
         if (list != null)
@@ -263,8 +272,11 @@ public class HashTableTestUI : MonoBehaviour
         {
             case Method.OpenAdressing:
                 int index = openHashTable.FindIndex(kvp.Key);
-                if(openHashTable.Remove(kvp))
+                if (openHashTable.Remove(kvp))
+                {
                     CheckUpdateSlot(kvp, emptySlot, true, index);
+                    AddHistoryText($"Remove {inputKey}");
+                }
                 break;
             case Method.ChainingHash:
                 CheckChainRemoveAndUpdateSlot(kvp);
@@ -283,11 +295,17 @@ public class HashTableTestUI : MonoBehaviour
         currentSize = 16;
         ResetVisualObjs();
         isCleared = true;
+
+        hashHistory.text = string.Empty;
     }
 
-    private void SetHistoryText()
+    private void AddHistoryText(string text)
     {
+        var currStr = new StringBuilder(hashHistory.text);
+        currStr.Append(text);
+        currStr.Append(" -> ");
 
+        hashHistory.text = currStr.ToString();
     }
 
     private void SetSlotText(GameObject obj, int index, string key, int value)
