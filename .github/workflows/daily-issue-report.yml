@@ -18,7 +18,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
-      - run: npm ci
+      - run: npm install --no-audit --no-fund
       - name: Classify issues & (optionally) export to Notion
         run: npm start
         env:
