@@ -21,10 +21,22 @@ const EXCLUDE_ACTORS = new Set((process.env.EXCLUDE_ACTORS || '').split(',').map
 
 
 // Window: yesterday 00:00..24:00 KST → ISO UTC
-const endKST = DateTime.now().setZone(ZONE).startOf('day');
+const offset = Number(process.env.REPORT_OFFSET_DAYS ?? 1); // 기본 어제
+const endKST = DateTime.now().setZone(ZONE).startOf('day').plus({ days: -offset + 1 });
+// offset=1 -> end=오늘 00:00, offset=0 -> end=내일 00:00(=오늘 포함)
 const startKST = endKST.minus({ days: 1 });
+
 const startUTC = startKST.toUTC();
-const endUTC = endKST.toUTC();
+const endUTC   = endKST.toUTC();
+function withinWindow(ts) {
+  const t = DateTime.fromISO(ts, { zone: 'utc' });
+  return t >= startUTC && t < endUTC;
+}
+
+// const endKST = DateTime.now().setZone(ZONE).startOf('day');
+// const startKST = endKST.minus({ days: 1 });
+// const startUTC = startKST.toUTC();
+// const endUTC = endKST.toUTC();
 
 
 function withinWindow(ts) {

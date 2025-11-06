@@ -1,5 +1,7 @@
 name: Daily Issue Report (Done / InProgress / Todo)
 
+env:
+  REPORT_OFFSET_DAYS: 0
 
 on:
   schedule:
