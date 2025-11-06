@@ -28,10 +28,6 @@ const startKST = endKST.minus({ days: 1 });
 
 const startUTC = startKST.toUTC();
 const endUTC   = endKST.toUTC();
-function withinWindow(ts) {
-  const t = DateTime.fromISO(ts, { zone: 'utc' });
-  return t >= startUTC && t < endUTC;
-}
 
 // const endKST = DateTime.now().setZone(ZONE).startOf('day');
 // const startKST = endKST.minus({ days: 1 });
